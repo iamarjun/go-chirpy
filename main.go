@@ -4,21 +4,26 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+
+	"github.com/go-chi/chi"
 )
 
 func main() {
 	cfg := apiConfig{
 		fileserverHits: 0,
 	}
-	mux := http.NewServeMux()
+
+	r := chi.NewRouter()
 
 	fileServer := http.FileServer(http.Dir("."))
 
-	mux.Handle("/app/", cfg.middlewareMetricsInc(http.StripPrefix("/app", fileServer)))
-	mux.HandleFunc("/healthz", handlerReadiness)
-	mux.HandleFunc("/metrics", cfg.handlerMetrics)
+	fs := cfg.middlewareMetricsInc(http.StripPrefix("/app", fileServer))
+	r.Handle("/app", fs)
+	r.Handle("/app/assets/", fs)
+	r.Get("/healthz", handlerReadiness)
+	r.Get("/metrics", cfg.handlerMetrics)
 
-	corsMux := middlewareCors(mux)
+	corsMux := middlewareCors(r)
 
 	httpServer := &http.Server{
 		ReadTimeout: http.DefaultClient.Timeout,
