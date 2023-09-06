@@ -26,8 +26,8 @@ func main() {
 	r.Mount("/app", rApp)
 
 	rApi := chi.NewRouter()
-	rApi.Get("/healthz", handlerReadiness)
 	rApi.Get("/metrics", cfg.handlerMetrics)
+	rApi.Post("/validate_chirp", handlerValidateChirp)
 	r.Mount("/api", rApi)
 
 	rAdmin := chi.NewRouter()
