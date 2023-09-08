@@ -1,9 +1,11 @@
 package main
 
 import (
+	"log"
 	"net/http"
 
 	"github.com/go-chi/chi"
+	"github.com/iamarjun/go-chirpy/internal/database"
 )
 
 type apiConfig struct {
@@ -13,6 +15,11 @@ type apiConfig struct {
 func main() {
 	cfg := apiConfig{
 		fileserverHits: 0,
+	}
+
+	db, err := database.NewDB("database.json")
+	if err != nil {
+		log.Fatal(err)
 	}
 
 	r := chi.NewRouter()
@@ -28,6 +35,12 @@ func main() {
 	rApi := chi.NewRouter()
 	rApi.Get("/metrics", cfg.handlerMetrics)
 	rApi.Post("/validate_chirp", handlerValidateChirp)
+	rApi.Get("/chirps", func(w http.ResponseWriter, r *http.Request) {
+		handlerGetChirps(w, r, db)
+	})
+	rApi.Post("/chirps", func(w http.ResponseWriter, r *http.Request) {
+		handlerPostChirps(w, r, db)
+	})
 	r.Mount("/api", rApi)
 
 	rAdmin := chi.NewRouter()

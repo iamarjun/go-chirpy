@@ -4,20 +4,17 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
-	"strings"
+
+	"github.com/iamarjun/go-chirpy/internal/database"
 )
 
-func handlerValidateChirp(w http.ResponseWriter, r *http.Request) {
+func handlerPostChirps(w http.ResponseWriter, r *http.Request, db *database.DB) {
 	type parameter struct {
 		Body string `json:"body"`
 	}
 
 	type errorResp struct {
 		Error string `json:"error"`
-	}
-
-	type successResp struct {
-		CleanedBody string `json:"cleaned_body"`
 	}
 
 	decoder := json.NewDecoder(r.Body)
@@ -49,28 +46,17 @@ func handlerValidateChirp(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	fmt.Println(len(params.Body))
+	fmt.Println("Before trying to write data to db")
 
-	words := strings.Split(params.Body, " ")
+	chirp, err := db.CreateChirp(params.Body)
 
-	for i, word := range words {
-		if strings.ToLower(word) == "kerfuffle" || strings.ToLower(word) == "sharbert" || strings.ToLower(word) == "fornax" {
-			words[i] = "****"
-		}
+	fmt.Printf("DB write done %v\n", chirp)
+	if err != nil {
+		respondWithJson(w, 400, err)
+		return
 	}
-
-	fmt.Println(words)
-
-	body := strings.Join(words, " ")
-
-	fmt.Println(body)
-
-	resp := successResp{
-		CleanedBody: body,
-	}
-
-	fmt.Println(resp)
-	respondWithJson(w, 200, resp)
+	
+	fmt.Printf("Trying to respond with created chirp %v\n", chirp)
+	respondWithJson(w, 201, chirp)
 
 }
- 
