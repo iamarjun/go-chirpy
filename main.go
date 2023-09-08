@@ -38,6 +38,9 @@ func main() {
 	rApi.Get("/chirps", func(w http.ResponseWriter, r *http.Request) {
 		handlerGetChirps(w, r, db)
 	})
+	rApi.Get("/chirps/{chirpId}", func(w http.ResponseWriter, r *http.Request) {
+		handlerGetChirpById(w, r, db)
+	})
 	rApi.Post("/chirps", func(w http.ResponseWriter, r *http.Request) {
 		handlerPostChirps(w, r, db)
 	})
