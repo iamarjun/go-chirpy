@@ -9,21 +9,25 @@ import (
 )
 
 type DB struct {
-	path string
-	mux  *sync.RWMutex
-	id   int
+	path   string
+	mux    *sync.RWMutex
+	id     int
+	userId int
 }
 
 type DBStructure struct {
 	Chirps map[int]Chirp `json:"chirps"`
+	Users  map[int]User  `json:"users"`
 }
 
 // NewDB creates a new database connection
 // and creates the database file if it doesn't exist
 func NewDB(path string) (*DB, error) {
 	db := DB{
-		path: path,
-		mux:  &sync.RWMutex{},
+		path:   path,
+		mux:    &sync.RWMutex{},
+		id:     0,
+		userId: 0,
 	}
 	err := db.ensureDB()
 	if err != nil {
@@ -52,6 +56,26 @@ func (db *DB) CreateChirp(body string) (Chirp, error) {
 	fmt.Printf("AFter actual db write %v", chirp)
 
 	return chirp, nil
+}
+
+// CreateChirp creates a new user and saves it to disk
+func (db *DB) CreateUser(body string) (User, error) {
+	fmt.Println("Creating chirp method")
+	user := User{}
+	dat, err := db.loadDB()
+	if err != nil {
+		return user, err
+	}
+	user.Email = body
+	db.id++
+	user.ID = db.id
+
+	dat.Users[db.id] = user
+	fmt.Println("Before actual db write")
+	db.writeDB(dat)
+	fmt.Printf("AFter actual db write %v", user)
+
+	return user, nil
 }
 
 // GetChirps returns all chirps in the database
@@ -88,6 +112,7 @@ func (db *DB) loadDB() (DBStructure, error) {
 	err := db.ensureDB()
 	dbStruct := DBStructure{
 		Chirps: make(map[int]Chirp),
+		Users:  make(map[int]User),
 	}
 	fmt.Println("dbStructure made")
 	if err != nil {

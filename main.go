@@ -1,8 +1,10 @@
 package main
 
 import (
+	"flag"
 	"log"
 	"net/http"
+	"os"
 
 	"github.com/go-chi/chi"
 	"github.com/iamarjun/go-chirpy/internal/database"
@@ -13,6 +15,14 @@ type apiConfig struct {
 }
 
 func main() {
+
+	dbg := flag.Bool("debug", false, "Enable debug mode")
+	flag.Parse()
+
+	if *dbg {
+		os.Remove("database.json")
+	}
+
 	cfg := apiConfig{
 		fileserverHits: 0,
 	}
@@ -43,6 +53,9 @@ func main() {
 	})
 	rApi.Post("/chirps", func(w http.ResponseWriter, r *http.Request) {
 		handlerPostChirps(w, r, db)
+	})
+	rApi.Post("/users", func(w http.ResponseWriter, r *http.Request) {
+		handlerPostUsers(w, r, db)
 	})
 	r.Mount("/api", rApi)
 
