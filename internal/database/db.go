@@ -2,10 +2,13 @@ package database
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"log"
 	"os"
 	"sync"
+
+	"golang.org/x/crypto/bcrypt"
 )
 
 type DB struct {
@@ -16,8 +19,8 @@ type DB struct {
 }
 
 type DBStructure struct {
-	Chirps map[int]Chirp `json:"chirps"`
-	Users  map[int]User  `json:"users"`
+	Chirps map[int]Chirp   `json:"chirps"`
+	Users  map[string]User `json:"users"`
 }
 
 // NewDB creates a new database connection
@@ -59,7 +62,7 @@ func (db *DB) CreateChirp(body string) (Chirp, error) {
 }
 
 // CreateChirp creates a new user and saves it to disk
-func (db *DB) CreateUser(body string) (User, error) {
+func (db *DB) CreateUser(body string, password string) (User, error) {
 	fmt.Println("Creating chirp method")
 	user := User{}
 	dat, err := db.loadDB()
@@ -70,12 +73,59 @@ func (db *DB) CreateUser(body string) (User, error) {
 	db.id++
 	user.ID = db.id
 
-	dat.Users[db.id] = user
+	dat.Users[body] = user
 	fmt.Println("Before actual db write")
 	db.writeDB(dat)
 	fmt.Printf("AFter actual db write %v", user)
 
 	return user, nil
+}
+
+// CreateChirp creates a new user with password and saves it to disk
+func (db *DB) CreateUserWithPassword(body string, password string) (User, error) {
+	fmt.Println("Creating chirp method")
+
+	user := User{}
+	dat, err := db.loadDB()
+
+	if err != nil {
+		return user, err
+	}
+
+	existingUser, ok := dat.Users[body]
+	if ok {
+		fmt.Println("User already exists")
+		return existingUser, errors.New("User already exists")
+	}
+
+	hashPass, err := hashPassword(password)
+	if err != nil {
+		return user, err
+	}
+
+	user.Email = body
+	user.Password = hashPass
+	db.id++
+	user.ID = db.id
+
+	dat.Users[body] = user
+	fmt.Println("Before actual db write")
+	db.writeDB(dat)
+	fmt.Printf("AFter actual db write %v", user)
+
+	return user, nil
+}
+
+func hashPassword(password string) (string, error) {
+	// Generate a bcrypt hash of the password
+	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
+	if err != nil {
+		fmt.Println("Error generating bcrypt hash:", err)
+		return "", err
+	}
+
+	// Store the hashed password in your database or wherever you need to
+	return string(hashedPassword), nil
 }
 
 // GetChirps returns all chirps in the database
@@ -91,6 +141,32 @@ func (db *DB) GetChirps() ([]Chirp, error) {
 	}
 
 	return chirps, nil
+}
+
+func (db *DB) GetUserByEmail(email string) (User, error) {
+	user := User{}
+	data, err := db.loadDB()
+	if err != nil {
+		return user, err
+	}
+
+	user, ok := data.Users[email]
+	if !ok {
+		return user, fmt.Errorf("User not found")
+	}
+
+	return user, nil
+}
+
+func (db *DB) ValidatePasswordForUser(user User, password string) (bool, error) {
+
+	err := bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(password))
+
+	if err != nil {
+		return false, err
+	}
+
+	return true, nil
 }
 
 // ensureDB creates a new database file if it doesn't exist
@@ -112,7 +188,7 @@ func (db *DB) loadDB() (DBStructure, error) {
 	err := db.ensureDB()
 	dbStruct := DBStructure{
 		Chirps: make(map[int]Chirp),
-		Users:  make(map[int]User),
+		Users:  make(map[string]User),
 	}
 	fmt.Println("dbStructure made")
 	if err != nil {

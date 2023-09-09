@@ -50,7 +50,7 @@ func handlerPostChirps(w http.ResponseWriter, r *http.Request, db *database.DB) 
 
 	chirp, err := db.CreateChirp(params.Body)
 
-	fmt.Printf("DB write done %v\n", chirp)
+	fmt.Printf("DB write done for chirps endpoint %v\n", chirp)
 	if err != nil {
 		respondWithJson(w, 400, err)
 		return

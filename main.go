@@ -57,6 +57,9 @@ func main() {
 	rApi.Post("/users", func(w http.ResponseWriter, r *http.Request) {
 		handlerPostUsers(w, r, db)
 	})
+	rApi.Post("/login", func(w http.ResponseWriter, r *http.Request) {
+		handlerPostLogin(w, r, db)
+	})
 	r.Mount("/api", rApi)
 
 	rAdmin := chi.NewRouter()

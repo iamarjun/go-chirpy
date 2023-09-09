@@ -8,7 +8,7 @@ import (
 	"github.com/iamarjun/go-chirpy/internal/database"
 )
 
-func handlerPostUsers(w http.ResponseWriter, r *http.Request, db *database.DB) {
+func handlerPostLogin(w http.ResponseWriter, r *http.Request, db *database.DB) {
 	type parameter struct {
 		Email    string `json:"email"`
 		Password string `json:"password"`
@@ -48,16 +48,21 @@ func handlerPostUsers(w http.ResponseWriter, r *http.Request, db *database.DB) {
 
 	fmt.Println("Before trying to write data to db")
 
-	user, err := db.CreateUserWithPassword(params.Email, params.Password)
+	user, err := db.GetUserByEmail(params.Email)
 
-	fmt.Printf("DB write done user endpoint %v\n", user)
 	if err != nil {
-		fmt.Printf("Create user with password error %v\n", err)
+		fmt.Printf("Login user with password error %v", err)
 		respondWithError(w, 400, fmt.Sprintf(" %v", err))
 		return
 	}
 
-	fmt.Printf("Trying to respond with created user %v\n", user)
-	respondWithJson(w, 201, database.UserToResponseUser(user))
+	isValidPassword, err := db.ValidatePasswordForUser(user, params.Password)
 
+	if !isValidPassword {
+		respondWithError(w, 401, fmt.Sprintf(" %v", err))
+		return
+	}
+
+	fmt.Printf("Trying to respond with created user %v\n", user)
+	respondWithJson(w, 200, database.UserToResponseUser(user))
 }
