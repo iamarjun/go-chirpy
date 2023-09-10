@@ -43,49 +43,43 @@ func NewDB(path string) (*DB, error) {
 }
 
 // CreateChirp creates a new chirp and saves it to disk
-func (db *DB) CreateChirp(body string) (Chirp, error) {
-	fmt.Println("Creating chirp method")
+func (db *DB) CreateChirp(body string, authorID int) (Chirp, error) {
 	chirp := Chirp{}
 	dat, err := db.loadDB()
 	if err != nil {
 		return chirp, err
 	}
+
 	chirp.Chirp = body
+	chirp.AuthorID = authorID
 	db.id++
 	chirp.ID = db.id
 
 	dat.Chirps[db.id] = chirp
-	fmt.Println("Before actual db write")
 	db.writeDB(dat)
-	fmt.Printf("AFter actual db write %v", chirp)
 
 	return chirp, nil
 }
 
 // CreateChirp creates a new user and saves it to disk
 func (db *DB) CreateUser(body string, password string) (User, error) {
-	fmt.Println("Creating chirp method")
 	user := User{}
 	dat, err := db.loadDB()
 	if err != nil {
 		return user, err
 	}
 	user.Email = body
-	db.id++
-	user.ID = db.id
+	db.userId++
+	user.ID = db.userId
 
-	dat.Users[db.id] = user
-	fmt.Println("Before actual db write")
+	dat.Users[db.userId] = user
 	db.writeDB(dat)
-	fmt.Printf("AFter actual db write %v", user)
 
 	return user, nil
 }
 
 // CreateChirp creates a new user with password and saves it to disk
 func (db *DB) CreateUserWithPassword(email string, password string) (User, error) {
-	fmt.Println("Creating chirp method")
-
 	user := User{}
 	dat, err := db.loadDB()
 
@@ -106,13 +100,11 @@ func (db *DB) CreateUserWithPassword(email string, password string) (User, error
 
 	user.Email = email
 	user.Password = hashPass
-	db.id++
-	user.ID = db.id
+	db.userId++
+	user.ID = db.userId
 
-	dat.Users[db.id] = user
-	fmt.Println("Before actual db write")
+	dat.Users[db.userId] = user
 	db.writeDB(dat)
-	fmt.Printf("AFter actual db write %v", user)
 
 	return user, nil
 }
@@ -130,6 +122,22 @@ func hashPassword(password string) (string, error) {
 }
 
 // GetChirps returns all chirps in the database
+func (db *DB) GetChirpsByAuthorId(authorID int) ([]Chirp, error) {
+	chirps := []Chirp{}
+	dat, err := db.loadDB()
+	if err != nil {
+		return chirps, err
+	}
+
+	for _, chirp := range dat.Chirps {
+		if chirp.AuthorID == authorID {
+			chirps = append(chirps, chirp)
+		}
+	}
+
+	return chirps, nil
+}
+// GetChirps returns all chirps in the database
 func (db *DB) GetChirps() ([]Chirp, error) {
 	chirps := []Chirp{}
 	dat, err := db.loadDB()
@@ -137,11 +145,27 @@ func (db *DB) GetChirps() ([]Chirp, error) {
 		return chirps, err
 	}
 
-	for _, v := range dat.Chirps {
-		chirps = append(chirps, v)
+	for _, chirp := range dat.Chirps {
+		chirps = append(chirps, chirp)
 	}
 
 	return chirps, nil
+}
+
+// GetChirps returns all chirps in the database
+func (db *DB) GetChirpsById(chirpID int, authorID int) (Chirp, error) {
+	chirps, err := db.GetChirpsByAuthorId(authorID)
+	if err != nil {
+		return Chirp{}, err
+	}
+
+	for _, chirp := range chirps {
+		if chirp.ID == chirpID {
+			return chirp, nil
+		}
+	}
+
+	return Chirp{}, fmt.Errorf("chirp not found")
 }
 
 // GetChirps returns all chirps in the database
@@ -196,15 +220,9 @@ func (db *DB) UpdateUser(id int, newEmail string, newPassword string) (bool, Use
 		return false, user, err
 	}
 
-	fmt.Printf("old password %v\n", user.Password)
-
 	user.Password = hashPass
 
-	fmt.Printf("new password %v\n", user.Password)
 	data.Users[id] = user
-
-	fmt.Printf("updated db %v\n", data.Users)
-	fmt.Printf("updated db %v\n", data)
 
 	err = db.writeDB(data)
 
@@ -216,7 +234,6 @@ func (db *DB) UpdateUser(id int, newEmail string, newPassword string) (bool, Use
 }
 
 func (db *DB) ValidatePasswordForUser(user User, password string) (bool, error) {
-	fmt.Printf("hashed password : %v\n password to compare: %v\n", user.Password, password)
 	err := bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(password))
 
 	if err != nil {
@@ -241,18 +258,15 @@ func (db *DB) ensureDB() error {
 
 // loadDB reads the database file into memory
 func (db *DB) loadDB() (DBStructure, error) {
-	fmt.Printf("Calling load db")
 	err := db.ensureDB()
 	dbStruct := DBStructure{
 		Chirps:        make(map[int]Chirp),
 		Users:         make(map[int]User),
 		RefreshTokens: make(map[string]Token),
 	}
-	fmt.Println("dbStructure made")
 	if err != nil {
 		return dbStruct, err
 	}
-	fmt.Println("Trying to read file")
 	dat, err := os.ReadFile(db.path)
 	if err != nil {
 		return dbStruct, err
@@ -306,7 +320,6 @@ func (db *DB) IsTokenRevoked(token string) (bool, error) {
 
 // writeDB writes the database file to disk
 func (db *DB) writeDB(dbStructure DBStructure) error {
-	fmt.Printf("trying to write data %v\n", dbStructure)
 	err := db.ensureDB()
 	if err != nil {
 		return err

@@ -1,8 +1,9 @@
 package database
 
 type Chirp struct {
-	ID    int    `json:"id"`
-	Chirp string `json:"body"`
+	ID       int    `json:"id"`
+	Chirp    string `json:"body"`
+	AuthorID int    `json:"author_id"`
 }
 
 type User struct {

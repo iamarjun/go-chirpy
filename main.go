@@ -61,13 +61,13 @@ func main() {
 	rApi.Get("/metrics", cfg.handlerMetrics)
 	rApi.Post("/validate_chirp", handlerValidateChirp)
 	rApi.Get("/chirps", func(w http.ResponseWriter, r *http.Request) {
-		handlerGetChirps(w, r, db)
+		cfg.handlerGetChirps(w, r, db)
 	})
 	rApi.Get("/chirps/{chirpId}", func(w http.ResponseWriter, r *http.Request) {
-		handlerGetChirpById(w, r, db)
+		cfg.handlerGetChirpById(w, r, db)
 	})
 	rApi.Post("/chirps", func(w http.ResponseWriter, r *http.Request) {
-		handlerPostChirps(w, r, db)
+		cfg.handlerPostChirps(w, r, db)
 	})
 	rApi.Post("/users", func(w http.ResponseWriter, r *http.Request) {
 		handlerPostUsers(w, r, db)
