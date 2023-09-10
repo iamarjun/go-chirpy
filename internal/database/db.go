@@ -2,7 +2,6 @@ package database
 
 import (
 	"encoding/json"
-	"errors"
 	"fmt"
 	"log"
 	"os"
@@ -19,8 +18,8 @@ type DB struct {
 }
 
 type DBStructure struct {
-	Chirps map[int]Chirp   `json:"chirps"`
-	Users  map[string]User `json:"users"`
+	Chirps map[int]Chirp `json:"chirps"`
+	Users  map[int]User  `json:"users"`
 }
 
 // NewDB creates a new database connection
@@ -73,7 +72,7 @@ func (db *DB) CreateUser(body string, password string) (User, error) {
 	db.id++
 	user.ID = db.id
 
-	dat.Users[body] = user
+	dat.Users[db.id] = user
 	fmt.Println("Before actual db write")
 	db.writeDB(dat)
 	fmt.Printf("AFter actual db write %v", user)
@@ -82,7 +81,7 @@ func (db *DB) CreateUser(body string, password string) (User, error) {
 }
 
 // CreateChirp creates a new user with password and saves it to disk
-func (db *DB) CreateUserWithPassword(body string, password string) (User, error) {
+func (db *DB) CreateUserWithPassword(email string, password string) (User, error) {
 	fmt.Println("Creating chirp method")
 
 	user := User{}
@@ -92,23 +91,23 @@ func (db *DB) CreateUserWithPassword(body string, password string) (User, error)
 		return user, err
 	}
 
-	existingUser, ok := dat.Users[body]
-	if ok {
-		fmt.Println("User already exists")
-		return existingUser, errors.New("User already exists")
-	}
+	// existingUser, ok := dat.Users[db.id]
+	// if ok {
+	// 	fmt.Println("User already exists")
+	// 	return existingUser, errors.New("User already exists")
+	// }
 
 	hashPass, err := hashPassword(password)
 	if err != nil {
 		return user, err
 	}
 
-	user.Email = body
+	user.Email = email
 	user.Password = hashPass
 	db.id++
 	user.ID = db.id
 
-	dat.Users[body] = user
+	dat.Users[db.id] = user
 	fmt.Println("Before actual db write")
 	db.writeDB(dat)
 	fmt.Printf("AFter actual db write %v", user)
@@ -143,19 +142,75 @@ func (db *DB) GetChirps() ([]Chirp, error) {
 	return chirps, nil
 }
 
+// GetChirps returns all chirps in the database
+func (db *DB) GetUsers() ([]User, error) {
+	users := []User{}
+	dat, err := db.loadDB()
+	if err != nil {
+		return users, err
+	}
+
+	for _, v := range dat.Users {
+		users = append(users, v)
+	}
+
+	return users, nil
+}
+
 func (db *DB) GetUserByEmail(email string) (User, error) {
 	user := User{}
-	data, err := db.loadDB()
+
+	users, err := db.GetUsers()
+
 	if err != nil {
 		return user, err
 	}
 
-	user, ok := data.Users[email]
-	if !ok {
-		return user, fmt.Errorf("User not found")
+	for _, usr := range users {
+		if usr.Email == email {
+			user = usr
+			break
+		}
 	}
 
 	return user, nil
+}
+
+func (db *DB) UpdateUser(id int, newEmail string, newPassword string) (bool, User, error) {
+	data, err := db.loadDB()
+	if err != nil {
+		return false, User{}, err
+	}
+
+	user, ok := data.Users[id]
+	if !ok {
+		return false, User{}, fmt.Errorf("user not found")
+	}
+
+	user.Email = newEmail
+
+	hashPass, err := hashPassword(newPassword)
+	if err != nil {
+		return false, user, err
+	}
+
+	fmt.Printf("old password %v\n", user.Password)
+
+	user.Password = hashPass
+
+	fmt.Printf("new password %v\n", user.Password)
+	data.Users[id] = user
+
+	fmt.Printf("updated db %v\n", data.Users)
+	fmt.Printf("updated db %v\n", data)
+
+	err = db.writeDB(data)
+
+	if err != nil {
+		return false, user, err
+	}
+
+	return true, user, nil
 }
 
 func (db *DB) ValidatePasswordForUser(user User, password string) (bool, error) {
@@ -188,7 +243,7 @@ func (db *DB) loadDB() (DBStructure, error) {
 	err := db.ensureDB()
 	dbStruct := DBStructure{
 		Chirps: make(map[int]Chirp),
-		Users:  make(map[string]User),
+		Users:  make(map[int]User),
 	}
 	fmt.Println("dbStructure made")
 	if err != nil {
@@ -201,7 +256,6 @@ func (db *DB) loadDB() (DBStructure, error) {
 	}
 
 	if len(dat) > 0 {
-		fmt.Printf("Trying to unmarshal existing dbstructure %v\n", dat)
 		err = json.Unmarshal(dat, &dbStruct)
 		if err != nil {
 			return dbStruct, err
@@ -222,15 +276,11 @@ func (db *DB) writeDB(dbStructure DBStructure) error {
 		return err
 	}
 
-	fmt.Printf("Trying to marshal dbstructure %v\n", dbStructure)
-
 	dat, err := json.Marshal(dbStructure)
 
 	if err != nil {
 		return err
 	}
-
-	fmt.Printf("Marshaled dbstructure %v\n", dat)
 
 	err = os.WriteFile("database.json", dat, os.ModeAppend)
 	if err != nil {

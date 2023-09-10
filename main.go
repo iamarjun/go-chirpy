@@ -7,14 +7,26 @@ import (
 	"os"
 
 	"github.com/go-chi/chi"
+	"github.com/golang-jwt/jwt/v5"
 	"github.com/iamarjun/go-chirpy/internal/database"
+	"github.com/joho/godotenv"
 )
 
 type apiConfig struct {
 	fileserverHits int
+	jwtSecret      []byte
+	jwtClaims      jwt.RegisteredClaims
 }
 
 func main() {
+
+	err := godotenv.Load()
+
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	jwtSecret := os.Getenv("JWT_SECRET")
 
 	dbg := flag.Bool("debug", false, "Enable debug mode")
 	flag.Parse()
@@ -25,6 +37,7 @@ func main() {
 
 	cfg := apiConfig{
 		fileserverHits: 0,
+		jwtSecret:      []byte(jwtSecret),
 	}
 
 	db, err := database.NewDB("database.json")
@@ -57,8 +70,11 @@ func main() {
 	rApi.Post("/users", func(w http.ResponseWriter, r *http.Request) {
 		handlerPostUsers(w, r, db)
 	})
+	rApi.Put("/users", func(w http.ResponseWriter, r *http.Request) {
+		cfg.handlerPutUsers(w, r, db)
+	})
 	rApi.Post("/login", func(w http.ResponseWriter, r *http.Request) {
-		handlerPostLogin(w, r, db)
+		cfg.handlerPostLogin(w, r, db)
 	})
 	r.Mount("/api", rApi)
 

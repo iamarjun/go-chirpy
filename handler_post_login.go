@@ -4,14 +4,18 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"strconv"
+	"time"
 
+	"github.com/golang-jwt/jwt/v5"
 	"github.com/iamarjun/go-chirpy/internal/database"
 )
 
-func handlerPostLogin(w http.ResponseWriter, r *http.Request, db *database.DB) {
+func (cfg *apiConfig) handlerPostLogin(w http.ResponseWriter, r *http.Request, db *database.DB) {
 	type parameter struct {
-		Email    string `json:"email"`
-		Password string `json:"password"`
+		Email            string `json:"email"`
+		Password         string `json:"password"`
+		ExpiresInSeconds int    `json:"expires_in_seconds"`
 	}
 
 	type errorResp struct {
@@ -63,6 +67,35 @@ func handlerPostLogin(w http.ResponseWriter, r *http.Request, db *database.DB) {
 		return
 	}
 
-	fmt.Printf("Trying to respond with created user %v\n", user)
-	respondWithJson(w, 200, database.UserToResponseUser(user))
+	//Issue a JWT token
+	expire := params.ExpiresInSeconds
+
+	if expire == 0 {
+		expire = 24
+	}
+
+	expiresAt := time.Now().UTC().Add(time.Duration(expire) * time.Second)
+	registerClaims := jwt.RegisteredClaims{
+		Issuer:    "chirpy",
+		IssuedAt:  jwt.NewNumericDate(time.Now().UTC()),
+		Subject:   strconv.Itoa(user.ID),
+		ExpiresAt: jwt.NewNumericDate(expiresAt),
+	}
+	cfg.jwtClaims = registerClaims
+	jwtToken := jwt.NewWithClaims(jwt.SigningMethodHS512, registerClaims)
+	fmt.Println("Signing token with secret")
+	token, err := jwtToken.SignedString(cfg.jwtSecret)
+
+	if err != nil {
+		fmt.Printf("token %v", token)
+		respondWithError(w, 400, fmt.Sprintf(" %v", err))
+		return
+	}
+
+	usr := database.UserToResponseUserWithToken(user)
+	usr.Token = token
+
+	fmt.Printf("jwt token %v\n", token)
+	fmt.Printf("Trying to respond with created user %v\n", usr)
+	respondWithJson(w, 200, usr)
 }

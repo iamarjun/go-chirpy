@@ -16,9 +16,19 @@ type ResponseUser struct {
 	Email string `json:"email"`
 }
 
+type ResponseUserWithToken struct {
+	ResponseUser
+	Token string `json:"token"`
+}
+
 func UserToResponseUser(user User) ResponseUser {
 	return ResponseUser{
 		ID:    user.ID,
 		Email: user.Email,
+	}
+}
+func UserToResponseUserWithToken(user User) ResponseUserWithToken {
+	return ResponseUserWithToken{
+		ResponseUser: UserToResponseUser(user),
 	}
 }
