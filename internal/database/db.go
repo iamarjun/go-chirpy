@@ -137,6 +137,7 @@ func (db *DB) GetChirpsByAuthorId(authorID int) ([]Chirp, error) {
 
 	return chirps, nil
 }
+
 // GetChirps returns all chirps in the database
 func (db *DB) GetChirps() ([]Chirp, error) {
 	chirps := []Chirp{}
@@ -166,6 +167,34 @@ func (db *DB) GetChirpsById(chirpID int, authorID int) (Chirp, error) {
 	}
 
 	return Chirp{}, fmt.Errorf("chirp not found")
+}
+
+// GetChirps returns all chirps in the database
+func (db *DB) DeleteChirpsById(chirpID int, authorID int) (bool, error) {
+	data, err := db.loadDB()
+	if err != nil {
+		return false, err
+	}
+
+	chirp, ok := data.Chirps[chirpID]
+
+	if !ok {
+		return false, fmt.Errorf("chirp not found")
+	}
+
+	if chirp.AuthorID != authorID {
+		return false, fmt.Errorf("not authorized to delete this chirp")
+	}
+
+	delete(data.Chirps, chirpID)
+
+	err = db.writeDB(data)
+
+	if err != nil {
+		return false, err
+	}
+
+	return true, nil
 }
 
 // GetChirps returns all chirps in the database

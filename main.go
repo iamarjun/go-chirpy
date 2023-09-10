@@ -66,6 +66,9 @@ func main() {
 	rApi.Get("/chirps/{chirpId}", func(w http.ResponseWriter, r *http.Request) {
 		cfg.handlerGetChirpById(w, r, db)
 	})
+	rApi.Delete("/chirps/{chirpId}", func(w http.ResponseWriter, r *http.Request) {
+		cfg.handlerDeleteChirp(w, r, db)
+	})
 	rApi.Post("/chirps", func(w http.ResponseWriter, r *http.Request) {
 		cfg.handlerPostChirps(w, r, db)
 	})
