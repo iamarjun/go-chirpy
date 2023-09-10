@@ -13,9 +13,10 @@ import (
 )
 
 type apiConfig struct {
-	fileserverHits int
-	jwtSecret      []byte
-	jwtClaims      jwt.RegisteredClaims
+	fileserverHits   int
+	jwtSecret        []byte
+	accessJwtClaims  jwt.RegisteredClaims
+	refreshJwtClaims jwt.RegisteredClaims
 }
 
 func main() {
@@ -56,6 +57,7 @@ func main() {
 	r.Mount("/app", rApp)
 
 	rApi := chi.NewRouter()
+	rApi.Get("/healthz", handlerReadiness)
 	rApi.Get("/metrics", cfg.handlerMetrics)
 	rApi.Post("/validate_chirp", handlerValidateChirp)
 	rApi.Get("/chirps", func(w http.ResponseWriter, r *http.Request) {
@@ -75,6 +77,12 @@ func main() {
 	})
 	rApi.Post("/login", func(w http.ResponseWriter, r *http.Request) {
 		cfg.handlerPostLogin(w, r, db)
+	})
+	rApi.Post("/refresh", func(w http.ResponseWriter, r *http.Request) {
+		cfg.handlerRefreshToken(w, r, db)
+	})
+	rApi.Post("/revoke", func(w http.ResponseWriter, r *http.Request) {
+		cfg.handlerRevokeToken(w, r, db)
 	})
 	r.Mount("/api", rApi)
 

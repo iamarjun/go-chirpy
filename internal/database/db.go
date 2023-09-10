@@ -6,6 +6,7 @@ import (
 	"log"
 	"os"
 	"sync"
+	"time"
 
 	"golang.org/x/crypto/bcrypt"
 )
@@ -18,8 +19,9 @@ type DB struct {
 }
 
 type DBStructure struct {
-	Chirps map[int]Chirp `json:"chirps"`
-	Users  map[int]User  `json:"users"`
+	Chirps        map[int]Chirp    `json:"chirps"`
+	Users         map[int]User     `json:"users"`
+	RefreshTokens map[string]Token `json:"refresh_tokens"`
 }
 
 // NewDB creates a new database connection
@@ -169,11 +171,11 @@ func (db *DB) GetUserByEmail(email string) (User, error) {
 	for _, usr := range users {
 		if usr.Email == email {
 			user = usr
-			break
+			return user, nil
 		}
 	}
 
-	return user, nil
+	return user, fmt.Errorf("user not found")
 }
 
 func (db *DB) UpdateUser(id int, newEmail string, newPassword string) (bool, User, error) {
@@ -214,7 +216,7 @@ func (db *DB) UpdateUser(id int, newEmail string, newPassword string) (bool, Use
 }
 
 func (db *DB) ValidatePasswordForUser(user User, password string) (bool, error) {
-
+	fmt.Printf("hashed password : %v\n password to compare: %v\n", user.Password, password)
 	err := bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(password))
 
 	if err != nil {
@@ -242,8 +244,9 @@ func (db *DB) loadDB() (DBStructure, error) {
 	fmt.Printf("Calling load db")
 	err := db.ensureDB()
 	dbStruct := DBStructure{
-		Chirps: make(map[int]Chirp),
-		Users:  make(map[int]User),
+		Chirps:        make(map[int]Chirp),
+		Users:         make(map[int]User),
+		RefreshTokens: make(map[string]Token),
 	}
 	fmt.Println("dbStructure made")
 	if err != nil {
@@ -266,6 +269,39 @@ func (db *DB) loadDB() (DBStructure, error) {
 
 	return dbStruct, nil
 
+}
+
+func (db *DB) RevokeRefreshToken(token string) (bool, error) {
+	data, err := db.loadDB()
+	if err != nil {
+		return false, err
+	}
+
+	data.RefreshTokens[token] = Token{
+		IsRevoked: true,
+		Timestamp: time.Now().UTC().String(),
+	}
+
+	err = db.writeDB(data)
+	if err != nil {
+		return false, err
+	}
+	return true, nil
+}
+
+func (db *DB) IsTokenRevoked(token string) (bool, error) {
+	data, err := db.loadDB()
+	if err != nil {
+		return false, err
+	}
+
+	_, ok := data.RefreshTokens[token]
+
+	if !ok {
+		return false, nil
+	}
+
+	return true, nil
 }
 
 // writeDB writes the database file to disk

@@ -29,7 +29,7 @@ func (cfg *apiConfig) handlerPutUsers(w http.ResponseWriter, r *http.Request, db
 
 	jwtToken := splitAuth[1]
 
-	token, err := jwt.ParseWithClaims(jwtToken, &cfg.jwtClaims, func(t *jwt.Token) (interface{}, error) {
+	token, err := jwt.ParseWithClaims(jwtToken, &cfg.accessJwtClaims, func(t *jwt.Token) (interface{}, error) {
 		return []byte(cfg.jwtSecret), nil
 	}, jwt.WithLeeway(2*time.Second))
 
@@ -39,7 +39,19 @@ func (cfg *apiConfig) handlerPutUsers(w http.ResponseWriter, r *http.Request, db
 	}
 
 	if !token.Valid {
-		respondWithError(w, 401, fmt.Sprint("invalid token"))
+		respondWithError(w, 401, "invalid token")
+		return
+	}
+
+	issuer, err := token.Claims.GetIssuer()
+
+	if err != nil {
+		respondWithError(w, 401, fmt.Sprintf(" %v", err))
+		return
+	}
+
+	if issuer != ACCESS_ISSUER {
+		respondWithError(w, 401, "invalid token")
 		return
 	}
 
@@ -123,7 +135,7 @@ func (cfg *apiConfig) handlerPutUsers(w http.ResponseWriter, r *http.Request, db
 	}
 
 	if !isUpdated {
-		respondWithError(w, 400, fmt.Sprint("something went wrongz"))
+		respondWithError(w, 400, "something went wrongz")
 		return
 	}
 

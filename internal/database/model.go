@@ -11,6 +11,11 @@ type User struct {
 	Password string `json:"password"`
 }
 
+type Token struct {
+	IsRevoked bool   `json:"is_revoked"`
+	Timestamp string `json:"timestamp"`
+}
+
 type ResponseUser struct {
 	ID    int    `json:"id"`
 	Email string `json:"email"`
@@ -18,7 +23,8 @@ type ResponseUser struct {
 
 type ResponseUserWithToken struct {
 	ResponseUser
-	Token string `json:"token"`
+	Token        string `json:"token"`
+	RefreshToken string `json:"refresh_token"`
 }
 
 func UserToResponseUser(user User) ResponseUser {
