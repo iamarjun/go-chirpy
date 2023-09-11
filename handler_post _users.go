@@ -21,11 +21,7 @@ func handlerPostUsers(w http.ResponseWriter, r *http.Request, db *database.DB) {
 	decoder := json.NewDecoder(r.Body)
 	params := parameter{}
 
-	fmt.Println(params)
-
 	err := decoder.Decode(&params)
-
-	fmt.Println(params)
 
 	if err != nil {
 		respondWithError(w, 500, fmt.Sprintf(" %v", err))
@@ -46,18 +42,13 @@ func handlerPostUsers(w http.ResponseWriter, r *http.Request, db *database.DB) {
 		return
 	}
 
-	fmt.Println("Before trying to write data to db")
-
 	user, err := db.CreateUserWithPassword(params.Email, params.Password)
 
-	fmt.Printf("DB write done user endpoint %v\n", user)
 	if err != nil {
-		fmt.Printf("Create user with password error %v\n", err)
 		respondWithError(w, 400, fmt.Sprintf(" %v", err))
 		return
 	}
 
-	fmt.Printf("Trying to respond with created user %v\n", user)
 	respondWithJson(w, 201, database.UserToResponseUser(user))
 
 }

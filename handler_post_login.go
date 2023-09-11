@@ -27,11 +27,7 @@ func (cfg *apiConfig) handlerPostLogin(w http.ResponseWriter, r *http.Request, d
 	decoder := json.NewDecoder(r.Body)
 	params := parameter{}
 
-	fmt.Println(params)
-
 	err := decoder.Decode(&params)
-
-	fmt.Println(params)
 
 	if err != nil {
 		respondWithError(w, 500, fmt.Sprintf(" %v", err))
@@ -54,10 +50,9 @@ func (cfg *apiConfig) handlerPostLogin(w http.ResponseWriter, r *http.Request, d
 
 	user, err := db.GetUserByEmail(params.Email)
 
-	fmt.Printf("user gotten from email %v", user)
 
 	if err != nil {
-		fmt.Printf("Login user with password error %v", err)
+
 		respondWithError(w, 400, fmt.Sprintf(" %v", err))
 		return
 	}
@@ -65,7 +60,7 @@ func (cfg *apiConfig) handlerPostLogin(w http.ResponseWriter, r *http.Request, d
 	isValidPassword, err := db.ValidatePasswordForUser(user, params.Password)
 
 	if !isValidPassword {
-		fmt.Println("Password validation failed")
+
 		respondWithError(w, 401, fmt.Sprintf(" %v", err))
 		return
 	}
@@ -89,21 +84,19 @@ func (cfg *apiConfig) handlerPostLogin(w http.ResponseWriter, r *http.Request, d
 	cfg.refreshJwtClaims = refreshRegisterClaims
 
 	accessJwtToken := jwt.NewWithClaims(jwt.SigningMethodHS512, accessRegisterClaims)
-	fmt.Println("Signing token with secret")
 	accessToken, err := accessJwtToken.SignedString(cfg.jwtSecret)
 
 	if err != nil {
-		fmt.Printf("access token %v", accessToken)
+
 		respondWithError(w, 400, fmt.Sprintf(" %v", err))
 		return
 	}
 
 	refreshJwtToken := jwt.NewWithClaims(jwt.SigningMethodHS512, refreshRegisterClaims)
-	fmt.Println("Signing token with secret")
 	refreshToken, err := refreshJwtToken.SignedString(cfg.jwtSecret)
 
 	if err != nil {
-		fmt.Printf("refresh token %v", refreshToken)
+
 		respondWithError(w, 400, fmt.Sprintf(" %v", err))
 		return
 	}
@@ -112,7 +105,6 @@ func (cfg *apiConfig) handlerPostLogin(w http.ResponseWriter, r *http.Request, d
 	usr.Token = accessToken
 	usr.RefreshToken = refreshToken
 
-	fmt.Printf("Trying to respond with created user %v\n", usr)
 
 	respondWithJson(w, 200, usr)
 }

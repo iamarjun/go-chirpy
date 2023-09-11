@@ -104,8 +104,6 @@ func (cfg *apiConfig) handlerGetChirpById(w http.ResponseWriter, r *http.Request
 
 	jwtToken := splitAuth[1]
 
-	fmt.Printf("Token: %v", jwtToken)
-
 	token, err := jwt.ParseWithClaims(jwtToken, &cfg.accessJwtClaims, func(t *jwt.Token) (interface{}, error) {
 		return []byte(cfg.jwtSecret), nil
 	}, jwt.WithLeeway(2*time.Second))

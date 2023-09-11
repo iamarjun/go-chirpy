@@ -7,9 +7,10 @@ type Chirp struct {
 }
 
 type User struct {
-	ID       int    `json:"id"`
-	Email    string `json:"email"`
-	Password string `json:"password"`
+	ID          int    `json:"id"`
+	Email       string `json:"email"`
+	Password    string `json:"password"`
+	IsChirpyRed bool   `json:"is_chirpy_red"`
 }
 
 type Token struct {
@@ -18,8 +19,9 @@ type Token struct {
 }
 
 type ResponseUser struct {
-	ID    int    `json:"id"`
-	Email string `json:"email"`
+	ID          int    `json:"id"`
+	Email       string `json:"email"`
+	IsChirpyRed bool   `json:"is_chirpy_red"`
 }
 
 type ResponseUserWithToken struct {
@@ -30,8 +32,9 @@ type ResponseUserWithToken struct {
 
 func UserToResponseUser(user User) ResponseUser {
 	return ResponseUser{
-		ID:    user.ID,
-		Email: user.Email,
+		ID:          user.ID,
+		Email:       user.Email,
+		IsChirpyRed: user.IsChirpyRed,
 	}
 }
 func UserToResponseUserWithToken(user User) ResponseUserWithToken {

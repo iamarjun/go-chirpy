@@ -87,12 +87,6 @@ func (db *DB) CreateUserWithPassword(email string, password string) (User, error
 		return user, err
 	}
 
-	// existingUser, ok := dat.Users[db.id]
-	// if ok {
-	// 	fmt.Println("User already exists")
-	// 	return existingUser, errors.New("User already exists")
-	// }
-
 	hashPass, err := hashPassword(password)
 	if err != nil {
 		return user, err
@@ -113,7 +107,6 @@ func hashPassword(password string) (string, error) {
 	// Generate a bcrypt hash of the password
 	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
 	if err != nil {
-		fmt.Println("Error generating bcrypt hash:", err)
 		return "", err
 	}
 
@@ -231,6 +224,51 @@ func (db *DB) GetUserByEmail(email string) (User, error) {
 	return user, fmt.Errorf("user not found")
 }
 
+func (db *DB) GetUserById(userId int) (User, error) {
+	user := User{}
+
+	users, err := db.GetUsers()
+
+	if err != nil {
+		return user, err
+	}
+
+	for _, usr := range users {
+		if usr.ID == userId {
+			user = usr
+			return user, nil
+		}
+	}
+
+	return user, fmt.Errorf("user not found")
+}
+
+func (db *DB) MarkUserAsChirpRed(userId int) (bool, error) {
+	data, err := db.loadDB()
+
+	if err != nil {
+		return false, err
+	}
+
+	user, err := db.GetUserById(userId)
+
+	if err != nil {
+		return false, err
+	}
+
+	user.IsChirpyRed = true
+
+	data.Users[userId] = user
+
+	err = db.writeDB(data)
+
+	if err != nil {
+		return false, err
+	}
+
+	return true, nil
+}
+
 func (db *DB) UpdateUser(id int, newEmail string, newPassword string) (bool, User, error) {
 	data, err := db.loadDB()
 	if err != nil {
@@ -307,8 +345,6 @@ func (db *DB) loadDB() (DBStructure, error) {
 			return dbStruct, err
 		}
 	}
-
-	fmt.Println(dbStruct)
 
 	return dbStruct, nil
 

@@ -81,11 +81,7 @@ func (cfg *apiConfig) handlerPostChirps(w http.ResponseWriter, r *http.Request, 
 	decoder := json.NewDecoder(r.Body)
 	params := parameter{}
 
-	fmt.Println(params)
-
 	err = decoder.Decode(&params)
-
-	fmt.Println(params)
 
 	if err != nil {
 		respondWithJson(w, 500, err)
@@ -102,22 +98,17 @@ func (cfg *apiConfig) handlerPostChirps(w http.ResponseWriter, r *http.Request, 
 	if len(params.Body) > 144 {
 		err := errorResp{}
 		err.Error = "Chirp is too long"
-		fmt.Println(err)
 		respondWithJson(w, 400, err)
 		return
 	}
 
-	fmt.Println("Before trying to write data to db")
-
 	chirp, err := db.CreateChirp(params.Body, userID)
 
-	fmt.Printf("DB write done for chirps endpoint %v\n", chirp)
 	if err != nil {
 		respondWithJson(w, 400, err)
 		return
 	}
 
-	fmt.Printf("Trying to respond with created chirp %v\n", chirp)
 	respondWithJson(w, 201, chirp)
 
 }

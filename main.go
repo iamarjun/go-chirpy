@@ -87,6 +87,9 @@ func main() {
 	rApi.Post("/revoke", func(w http.ResponseWriter, r *http.Request) {
 		cfg.handlerRevokeToken(w, r, db)
 	})
+	rApi.Post("/polka/webhooks", func(w http.ResponseWriter, r *http.Request) {
+		handlerPolkaWebhook(w, r, db)
+	})
 	r.Mount("/api", rApi)
 
 	rAdmin := chi.NewRouter()

@@ -29,8 +29,6 @@ func (cfg *apiConfig) handlerDeleteChirp(w http.ResponseWriter, r *http.Request,
 
 	jwtToken := splitAuth[1]
 
-	fmt.Printf("Token: %v", jwtToken)
-
 	token, err := jwt.ParseWithClaims(jwtToken, &cfg.accessJwtClaims, func(t *jwt.Token) (interface{}, error) {
 		return []byte(cfg.jwtSecret), nil
 	}, jwt.WithLeeway(2*time.Second))
@@ -66,16 +64,12 @@ func (cfg *apiConfig) handlerDeleteChirp(w http.ResponseWriter, r *http.Request,
 
 	userID, err := strconv.Atoi(id)
 
-	fmt.Printf("user id: %v\n", userID)
-
 	if err != nil {
 		respondWithError(w, 401, fmt.Sprintf(" %v", err))
 		return
 	}
 
 	chirpId, err := strconv.Atoi(chi.URLParam(r, "chirpId"))
-
-	fmt.Printf("chirp id: %v\n", chirpId)
 
 	if err != nil {
 		respondWithJson(w, 400, fmt.Errorf("cannot convert %v to integer", chirpId))
