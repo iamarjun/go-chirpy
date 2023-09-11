@@ -16,31 +16,40 @@ import (
 
 func (cfg *apiConfig) handlerGetChirps(w http.ResponseWriter, r *http.Request, db *database.DB) {
 
-	authorId, err := strconv.Atoi(r.URL.Query().Get("author_id"))
+	authorIdParam := r.URL.Query().Get("author_id")
+	authorId := 0
+	authorId, _ = strconv.Atoi(authorIdParam)
+
+	sortParam := r.URL.Query().Get("sort")
+	sortAsc := true
+	if strings.ToLower(sortParam) != "" && strings.ToLower(sortParam) != "asc" {
+		sortAsc = false
+	}
 
 	fmt.Printf("Author ID: %v\n", authorId)
 
-	if err != nil {
-		respondWithError(w, 400, err.Error())
-		return
-	}
+	chirps := []database.Chirp{}
+	var err error
 
 	if authorId > 0 {
-		chirp, err := db.GetChirpsByAuthorId(authorId)
+		chirps, err = db.GetChirpsByAuthorId(authorId)
+	} else {
+		chirps, err = db.GetChirps()
+	}
 
-		if err != nil {
-			respondWithError(w, 400, err.Error())
-			return
-		}
-
-		respondWithJson(w, 200, chirp)
+	if err != nil {
+		log.Fatal(err)
+		respondWithJson(w, 400, err)
 		return
 	}
 
-	chirps, err := db.GetChirps()
-
 	sort.SliceStable(chirps, func(i, j int) bool {
-		return chirps[i].ID < chirps[j].ID
+		if sortAsc {
+			return chirps[i].ID < chirps[j].ID
+		} else {
+			return chirps[i].ID > chirps[j].ID
+		}
+
 	})
 
 	if err != nil {
