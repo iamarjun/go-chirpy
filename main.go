@@ -15,6 +15,7 @@ import (
 type apiConfig struct {
 	fileserverHits   int
 	jwtSecret        []byte
+	polkaApiKey      string
 	accessJwtClaims  jwt.RegisteredClaims
 	refreshJwtClaims jwt.RegisteredClaims
 }
@@ -28,6 +29,7 @@ func main() {
 	}
 
 	jwtSecret := os.Getenv("JWT_SECRET")
+	polkaApiKey := os.Getenv("POLKA_API_KEY")
 
 	dbg := flag.Bool("debug", false, "Enable debug mode")
 	flag.Parse()
@@ -39,6 +41,7 @@ func main() {
 	cfg := apiConfig{
 		fileserverHits: 0,
 		jwtSecret:      []byte(jwtSecret),
+		polkaApiKey:    polkaApiKey,
 	}
 
 	db, err := database.NewDB("database.json")
@@ -88,7 +91,7 @@ func main() {
 		cfg.handlerRevokeToken(w, r, db)
 	})
 	rApi.Post("/polka/webhooks", func(w http.ResponseWriter, r *http.Request) {
-		handlerPolkaWebhook(w, r, db)
+		cfg.handlerPolkaWebhook(w, r, db)
 	})
 	r.Mount("/api", rApi)
 

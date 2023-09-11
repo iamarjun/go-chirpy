@@ -2,13 +2,35 @@ package main
 
 import (
 	"encoding/json"
+	"fmt"
 	"net/http"
 	"strings"
 
 	"github.com/iamarjun/go-chirpy/internal/database"
 )
 
-func handlerPolkaWebhook(w http.ResponseWriter, r *http.Request, db *database.DB) {
+func (cfg *apiConfig) handlerPolkaWebhook(w http.ResponseWriter, r *http.Request, db *database.DB) {
+	apiKey := r.Header.Get("Authorization")
+
+	if len(apiKey) == 0 {
+		respondWithError(w, 401, fmt.Sprintln("api key not found"))
+		return
+	}
+
+	splitAuth := strings.Split(apiKey, " ")
+
+	if len(splitAuth) == 1 {
+		respondWithError(w, 401, fmt.Sprintln("invalid api key"))
+		return
+	}
+
+	polkaApiKey := splitAuth[1]
+
+	if polkaApiKey != cfg.polkaApiKey {
+		respondWithError(w, 401, fmt.Sprintln("invalid api key"))
+		return
+	}
+
 	type body struct {
 		Event string `json:"event"`
 		Data  struct {
